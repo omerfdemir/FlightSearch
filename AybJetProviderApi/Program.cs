@@ -1,7 +1,6 @@
 using AybJetProviderApi.Services;
-using AybJetProviderService.Services;
 
-namespace AybJetProviderService
+namespace AybJetProviderApi
 {
     public class Program
     {

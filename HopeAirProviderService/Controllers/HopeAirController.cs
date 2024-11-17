@@ -1,4 +1,4 @@
-using FllightSearchApi.Models.FlightSearch;
+using HopeAirProviderService.Models.FlightSearch;
 using HopeAirProviderService.Services;
 using Microsoft.AspNetCore.Mvc;
 

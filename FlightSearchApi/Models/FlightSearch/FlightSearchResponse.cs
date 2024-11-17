@@ -1,4 +1,4 @@
-namespace FllightSearchApi.Models.FlightSearch;
+namespace FlightSearchApi.Models.FlightSearch;
 
 public class FlightSearchResponse
 {

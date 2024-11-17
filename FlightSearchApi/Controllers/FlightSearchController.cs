@@ -1,8 +1,8 @@
-using FllightSearchApi.Models.FlightSearch;
-using FllightSearchApi.Services;
+using FlightSearchApi.Models.FlightSearch;
+using FlightSearchApi.Services;
 using Microsoft.AspNetCore.Mvc;
 
-namespace FllightSearchApi.Controllers;
+namespace FlightSearchApi.Controllers;
 
     [ApiController]
     [Route("[controller]")]

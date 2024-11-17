@@ -1,5 +1,5 @@
+using AybJetProviderApi.Models.FlightSearch;
 using AybJetProviderApi.Services;
-using FllightSearchApi.Models.FlightSearch;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AybJetProviderApi.Controllers;

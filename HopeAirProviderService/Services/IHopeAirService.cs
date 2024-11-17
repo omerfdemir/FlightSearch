@@ -1,4 +1,4 @@
-using FllightSearchApi.Models.FlightSearch;
+using HopeAirProviderService.Models.FlightSearch;
 
 namespace HopeAirProviderService.Services;
 

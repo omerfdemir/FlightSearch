@@ -1,4 +1,4 @@
-namespace FllightSearchApi.Configuration;
+namespace FlightSearchApi.Configuration;
 public class ProviderServiceSettings
 {
     public ProviderSettings HopeAir { get; set; } = new();

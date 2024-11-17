@@ -1,11 +1,7 @@
-using AybJetProviderApi.Services;
-using FllightSearchApi.Models.FlightSearch;
-using Microsoft.Extensions.Logging;
-using System.Collections.Generic;
-using System.Linq;
+using AybJetProviderApi.Models.FlightSearch;
 using System.Text.Json;
 
-namespace AybJetProviderService.Services
+namespace AybJetProviderApi.Services
 {
     public class AybJetService : IAybJetService
     {

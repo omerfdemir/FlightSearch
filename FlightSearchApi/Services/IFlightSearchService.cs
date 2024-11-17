@@ -1,6 +1,6 @@
-using FllightSearchApi.Models.FlightSearch;
+using FlightSearchApi.Models.FlightSearch;
 
-namespace FllightSearchApi.Services;
+namespace FlightSearchApi.Services;
 
 public interface IFlightSearchService
 {

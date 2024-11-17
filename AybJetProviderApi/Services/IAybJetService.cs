@@ -1,4 +1,4 @@
-using FllightSearchApi.Models.FlightSearch;
+using AybJetProviderApi.Models.FlightSearch;
 
 namespace AybJetProviderApi.Services;
 

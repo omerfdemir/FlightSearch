@@ -1,4 +1,4 @@
-namespace FllightSearchApi.Models.FlightSearch;
+namespace AybJetProviderApi.Models.FlightSearch;
 
 public class FlightSearchRequest
 {

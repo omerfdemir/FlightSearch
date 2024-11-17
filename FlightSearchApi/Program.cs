@@ -1,5 +1,5 @@
-using FllightSearchApi.Services;
-using FllightSearchApi.Configuration;
+using FlightSearchApi.Configuration;
+using FlightSearchApi.Services;
 using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
