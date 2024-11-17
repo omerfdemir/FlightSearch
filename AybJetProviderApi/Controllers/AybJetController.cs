@@ -17,9 +17,9 @@ public class AybJetController : ControllerBase
     }
 
     [HttpPost("search")]
-    public IActionResult Search([FromBody] FlightSearchRequest request)
+    public async Task<IActionResult> Search([FromBody] FlightSearchRequest request, CancellationToken cancellationToken)
     {
-        var flights = _aybJetService.SearchFlights(request);
+        var flights = await _aybJetService.SearchFlightsAsync(request, cancellationToken);
         return Ok(flights);
     }
 
@@ -30,9 +30,9 @@ public class AybJetController : ControllerBase
     }
 
     [HttpPost("book")]
-    public async Task<IActionResult> BookFlight([FromBody] BookingRequest request)
+    public async Task<IActionResult> BookFlight([FromBody] BookingRequest request, CancellationToken cancellationToken)
     {
-        var success = await _aybJetService.BookFlightAsync(request);
+        var success = await _aybJetService.BookFlightAsync(request, cancellationToken);
         if (!success)
         {
             return NotFound(new { message = "Flight not available" });

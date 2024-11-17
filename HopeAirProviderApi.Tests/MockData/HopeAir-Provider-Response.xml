@@ -1,0 +1,5 @@
+<ItemGroup>
+    <None Update="MockData\HopeAir-Provider-Response.xml">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+</ItemGroup>

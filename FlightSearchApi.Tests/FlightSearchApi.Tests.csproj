@@ -21,6 +21,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\FlightBookApi.Tests\FlightBookApi.Tests.csproj" />
       <ProjectReference Include="..\FlightSearchApi\FlightSearchApi.csproj" />
     </ItemGroup>
 

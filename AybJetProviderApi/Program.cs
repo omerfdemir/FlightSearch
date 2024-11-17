@@ -1,4 +1,5 @@
 using AybJetProviderApi.Services;
+using AybJetProviderApi.Services.Cache;
 
 namespace AybJetProviderApi
 {
@@ -10,6 +11,7 @@ namespace AybJetProviderApi
             
             builder.Services.AddControllers();
             builder.Services.AddScoped<IAybJetService, AybJetService>();
+            builder.Services.AddSingleton<ICache, MemoryCache>();
 
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();

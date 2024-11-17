@@ -15,7 +15,7 @@ public class FlightBookService: IFlightBookService
         }
 
 
-        public async Task<BookingResponse> BookFlightAsync(BookingRequest request, CancellationToken cancellationToken)
+        public async Task<BookingResponse> BookFlightAsync(BookingRequest request, CancellationToken cancellationToken = default)
         {
             var (client, uri) = GetProviderDetails(request.FlightNumber);
             

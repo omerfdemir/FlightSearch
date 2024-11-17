@@ -8,16 +8,17 @@ namespace FlightSearchApi.Tests.TestHelpers
     {
         public static void VerifyLog<T>(
             this Mock<ILogger<T>> logger,
-            Action<ILogger<T>> verify,
+            LogLevel level,
+            string expectedMessage,
             Times? times = null)
         {
             logger.Verify(
                 x => x.Log(
-                    It.IsAny<LogLevel>(),
+                    It.Is<LogLevel>(l => l == level),
                     It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => true),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains(expectedMessage)),
                     It.IsAny<Exception>(),
-                    It.Is<Func<It.IsAnyType, Exception, string>>((v, t) => true)),
+                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
                 times ?? Times.Once());
         }
     }

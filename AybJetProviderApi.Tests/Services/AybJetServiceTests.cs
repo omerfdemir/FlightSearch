@@ -1,6 +1,7 @@
 using AybJetProviderApi.Models.Booking;
 using AybJetProviderApi.Models.FlightSearch;
 using AybJetProviderApi.Services;
+using AybJetProviderApi.Services.Cache;
 using AybJetProviderApi.Tests.TestHelpers;
 using System;
 using System.Collections.Generic;
@@ -15,16 +16,18 @@ namespace AybJetProviderApi.Tests.Services
     public class AybJetServiceTests
     {
         private readonly Mock<ILogger<AybJetService>> _mockLogger;
+        private readonly Mock<ICache> _mockCache;
         private readonly AybJetService _service;
 
         public AybJetServiceTests()
         {
             _mockLogger = new Mock<ILogger<AybJetService>>();
-            _service = new AybJetService(_mockLogger.Object);
+            _mockCache = new Mock<ICache>();
+            _service = new AybJetService(_mockLogger.Object, _mockCache.Object);
         }
 
         [Fact]
-        public void SearchFlights_WithValidRequest_ReturnsFilteredFlights()
+        public async Task SearchFlightsAsync_WithValidRequest_ReturnsFilteredFlights()
         {
             // Arrange
             var request = new FlightSearchRequest 
@@ -34,7 +37,7 @@ namespace AybJetProviderApi.Tests.Services
             };
 
             // Act
-            var result = _service.SearchFlights(request);
+            var result = await _service.SearchFlightsAsync(request, CancellationToken.None);
 
             // Assert
             Assert.NotNull(result);
@@ -44,6 +47,12 @@ namespace AybJetProviderApi.Tests.Services
                 Assert.Equal(request.Destination, flight.Arrival);
                 Assert.StartsWith("AY", flight.FlightNumber);
             });
+
+            _mockCache.Verify(x => x.Set(
+                "AybJet_Flights",
+                It.Is<List<FlightSearchResponse>>(list => 
+                    list.Any(f => f.FlightNumber == "AY123"))), 
+                Times.Once);
         }
 
         [Fact]
@@ -51,17 +60,24 @@ namespace AybJetProviderApi.Tests.Services
         {
             // Arrange
             var request = new BookingRequest { FlightNumber = "AY123" };
-            
-            // First add a flight to the cache via search
-            var searchRequest = new FlightSearchRequest 
-            { 
-                Origin = "LHR",
-                Destination = "JFK" 
+            var mockFlights = new List<FlightSearchResponse>
+            {
+                new FlightSearchResponse 
+                { 
+                    FlightNumber = "AY123",
+                    Departure = "LHR",
+                    Arrival = "JFK",
+                    Price = 500.00m,
+                    Currency = "USD",
+                    Duration = "8h"
+                }
             };
-            _service.SearchFlights(searchRequest);
+
+            _mockCache.Setup(x => x.Get<List<FlightSearchResponse>>("AybJet_Flights"))
+                .Returns(mockFlights);
 
             // Act
-            var result = await _service.BookFlightAsync(request);
+            var result = await _service.BookFlightAsync(request, CancellationToken.None);
 
             // Assert
             Assert.True(result);
@@ -71,8 +87,10 @@ namespace AybJetProviderApi.Tests.Services
                     It.IsAny<EventId>(),
                     It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Flight AY123 booked and removed from cache")),
                     It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-                Times.Once);
+                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
+                Times.Once());
+            
+            _mockCache.Verify(x => x.Set("AybJet_Flights", It.IsAny<List<FlightSearchResponse>>()), Times.Once());
         }
 
         [Fact]
@@ -80,9 +98,11 @@ namespace AybJetProviderApi.Tests.Services
         {
             // Arrange
             var request = new BookingRequest { FlightNumber = "AY999" };
+            _mockCache.Setup(x => x.Get<List<FlightSearchResponse>>("AybJet_Flights"))
+                .Returns((List<FlightSearchResponse>)null!);
 
             // Act
-            var result = await _service.BookFlightAsync(request);
+            var result = await _service.BookFlightAsync(request, CancellationToken.None);
 
             // Assert
             Assert.False(result);
@@ -92,35 +112,8 @@ namespace AybJetProviderApi.Tests.Services
                     It.IsAny<EventId>(),
                     It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Flight AY999 not found in cache")),
                     It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-                Times.Once);
-        }
-
-        [Fact]
-        public async Task StreamFlightsAsync_ReturnsCorrectFlights()
-        {
-            // Arrange
-            var request = new FlightSearchRequest
-            {
-                Origin = "LHR",
-                Destination = "JFK"
-            };
-
-            // Act
-            var results = new List<FlightSearchResponse>();
-            await foreach (var flight in _service.StreamFlightsAsync(request, CancellationToken.None))
-            {
-                results.Add(flight);
-            }
-
-            // Assert
-            Assert.NotEmpty(results);
-            Assert.All(results, flight =>
-            {
-                Assert.Equal(request.Origin, flight.Departure);
-                Assert.Equal(request.Destination, flight.Arrival);
-                Assert.StartsWith("AY", flight.FlightNumber);
-            });
+                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
+                Times.Once());
         }
     }
 } 

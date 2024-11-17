@@ -1,12 +1,13 @@
+using AybJetProviderApi.Models;
 using AybJetProviderApi.Models.Booking;
 using AybJetProviderApi.Models.FlightSearch;
 
-namespace AybJetProviderApi.Services;
-
-
+namespace AybJetProviderApi.Services
+{
     public interface IAybJetService
     {
-        List<FlightSearchResponse> SearchFlights(FlightSearchRequest request);
-        IAsyncEnumerable<FlightSearchResponse> StreamFlightsAsync(FlightSearchRequest request, CancellationToken cancellationToken);
-        Task<bool> BookFlightAsync(BookingRequest request);
+        Task<bool> BookFlightAsync(BookingRequest request, CancellationToken cancellationToken = default);
+        Task<List<FlightSearchResponse>> SearchFlightsAsync(FlightSearchRequest request, CancellationToken cancellationToken = default);
+        IAsyncEnumerable<FlightSearchResponse> StreamFlightsAsync(FlightSearchRequest request, CancellationToken cancellationToken = default);
     }
+}

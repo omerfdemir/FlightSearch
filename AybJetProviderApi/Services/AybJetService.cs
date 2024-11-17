@@ -1,78 +1,78 @@
+using AybJetProviderApi.Models;
 using AybJetProviderApi.Models.Booking;
 using AybJetProviderApi.Models.FlightSearch;
+using AybJetProviderApi.Services.Cache;
+using Microsoft.Extensions.Logging;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 
 namespace AybJetProviderApi.Services
 {
-    public class AybJetService : IAybJetService
+    public class AybJetService: IAybJetService
     {
         private readonly ILogger<AybJetService> _logger;
-        private static readonly List<FlightSearchResponse> _flightCache = new();
+        private readonly ICache _cache;
+        private const string FLIGHTS_CACHE_KEY = "AybJet_Flights";
 
-        public AybJetService(ILogger<AybJetService> logger)
+        public AybJetService(ILogger<AybJetService> logger, ICache cache)
         {
             _logger = logger;
+            _cache = cache;
         }
 
-        public List<FlightSearchResponse> SearchFlights(FlightSearchRequest request)
+        public async Task<bool> BookFlightAsync(BookingRequest request, CancellationToken cancellationToken = default)
         {
-            var flights = GetMockAybJetFlights();
+            var flights = _cache.Get<List<FlightSearchResponse>>(FLIGHTS_CACHE_KEY);
             
-            var filteredFlights = flights
-                .Where(f => f.Departure == request.Origin && f.Arrival == request.Destination)
-                .ToList();
-
-            return filteredFlights;
-        }
-
-        public async IAsyncEnumerable<FlightSearchResponse> StreamFlightsAsync(
-            FlightSearchRequest request,
-            [EnumeratorCancellation] CancellationToken cancellationToken)
-        {
-            var flights = GetMockAybJetFlights();
-            
-            foreach (var flight in flights.Where(f => 
-                f.Departure == request.Origin && 
-                f.Arrival == request.Destination))
+            if (flights == null)
             {
-                if (cancellationToken.IsCancellationRequested)
-                    yield break;
-
-                await Task.Delay(100, cancellationToken); // Simulate real-time streaming
-                yield return flight;
+                _logger.LogWarning($"Flight {request.FlightNumber} not found in cache");
+                return false;
             }
-        }
 
-        public async Task<bool> BookFlightAsync(BookingRequest request)
-        {
-            var flight = _flightCache.FirstOrDefault(f => f.FlightNumber == request.FlightNumber);
+            var flight = flights.FirstOrDefault(f => f.FlightNumber == request.FlightNumber);
             if (flight == null)
             {
                 _logger.LogWarning($"Flight {request.FlightNumber} not found in cache");
                 return false;
             }
 
-            _flightCache.Remove(flight);
+            flights.Remove(flight);
+            _cache.Set(FLIGHTS_CACHE_KEY, flights);
             _logger.LogInformation($"Flight {request.FlightNumber} booked and removed from cache");
             return true;
         }
 
-        private List<FlightSearchResponse> GetMockAybJetFlights()
+        public async Task<List<FlightSearchResponse>> SearchFlightsAsync(FlightSearchRequest request, CancellationToken cancellationToken = default)
         {
-            var filePath = Path.Combine(Directory.GetCurrentDirectory(), "MockData", "AybJet-Provider-Response.json");
-
-            try
+            var flights = new List<FlightSearchResponse>
             {
-                var jsonData = File.ReadAllText(filePath);
-                var flights = JsonSerializer.Deserialize<List<FlightSearchResponse>>(jsonData);
+                new FlightSearchResponse 
+                { 
+                    FlightNumber = "AY123",
+                    Departure = request.Origin,
+                    Arrival = request.Destination,
+                    Price = 500.00m,
+                    Currency = "USD",
+                    Duration = "8h"
+                }
+            };
 
-                return flights ?? new List<FlightSearchResponse>();
-            }
-            catch (Exception ex)
+            _cache.Set(FLIGHTS_CACHE_KEY, flights);
+            return flights;
+        }
+
+        public async IAsyncEnumerable<FlightSearchResponse> StreamFlightsAsync(
+            FlightSearchRequest request,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            var flights = await SearchFlightsAsync(request, cancellationToken);
+            foreach (var flight in flights)
             {
-                _logger.LogError(ex, "Error reading mock data from AybJet-Provider-Response.json");
-                return new List<FlightSearchResponse>();
+                if (cancellationToken.IsCancellationRequested)
+                    yield break;
+                    
+                yield return flight;
             }
         }
     }

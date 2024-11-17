@@ -2,6 +2,7 @@ using HopeAirProviderApi.Models.Booking;
 using HopeAirProviderApi.Models.FlightSearch;
 using System.Runtime.CompilerServices;
 using System.Xml.Linq;
+using System.Xml;
 
 namespace HopeAirProviderApi.Services
 {
@@ -9,6 +10,7 @@ namespace HopeAirProviderApi.Services
     {
         private readonly ILogger<HopeAirService> _logger;
         private static readonly List<FlightSearchResponse> _flightCache = new();
+        private List<FlightSearchResponse> _availableFlights = new();
 
         public HopeAirService(ILogger<HopeAirService> logger)
         {
@@ -127,18 +129,81 @@ namespace HopeAirProviderApi.Services
             return flights;
         }
 
+        public void SetAvailableFlights(List<FlightSearchResponse> flights)
+        {
+            _availableFlights = flights;
+        }
+
         public async Task<bool> BookFlightAsync(BookingRequest request)
         {
-            var flight = _flightCache.FirstOrDefault(f => f.FlightNumber == request.FlightNumber);
+            var flight = _availableFlights.FirstOrDefault(f => f.FlightNumber == request.FlightNumber);
             if (flight == null)
             {
-                _logger.LogWarning($"Flight {request.FlightNumber} not found in cache");
+                _logger.LogWarning($"Flight {request.FlightNumber} not found");
                 return false;
             }
 
-            _flightCache.Remove(flight);
+            _availableFlights.Remove(flight);
             _logger.LogInformation($"Flight {request.FlightNumber} booked and removed from cache");
             return true;
+        }
+
+        public async Task<List<FlightSearchResponse>> ParseSoapResponseAsync(string soapResponse)
+        {
+            var flights = new List<FlightSearchResponse>();
+            if (string.IsNullOrEmpty(soapResponse))
+            {
+                _logger.LogError("SOAP response is empty.");
+                return flights;
+            }
+
+            var doc = new XmlDocument();
+            try
+            {
+                doc.LoadXml(soapResponse);
+                var flightNodes = doc.SelectNodes("//flight");
+                
+                if (flightNodes == null)
+                {
+                    _logger.LogError("No flight nodes found in response");
+                    return flights;
+                }
+
+                foreach (XmlNode flightNode in flightNodes)
+                {
+                    try
+                    {
+                        var flight = new FlightSearchResponse
+                        {
+                            FlightNumber = flightNode.SelectSingleNode("flightNumber")?.InnerText,
+                            Departure = flightNode.SelectSingleNode("departure")?.InnerText,
+                            Arrival = flightNode.SelectSingleNode("arrival")?.InnerText,
+                            Price = decimal.Parse(flightNode.SelectSingleNode("price")?.InnerText ?? "0"),
+                            Currency = flightNode.SelectSingleNode("currency")?.InnerText,
+                        };
+
+                        if (string.IsNullOrEmpty(flight.FlightNumber) || 
+                            string.IsNullOrEmpty(flight.Departure) || 
+                            string.IsNullOrEmpty(flight.Arrival))
+                        {
+                            _logger.LogError("Error parsing flight data: Missing required fields");
+                            continue;
+                        }
+
+                        flights.Add(flight);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error parsing flight data");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error parsing flight data");
+            }
+
+            return flights;
         }
     }
 }

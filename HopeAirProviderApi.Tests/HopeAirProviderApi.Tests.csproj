@@ -24,4 +24,16 @@
       <ProjectReference Include="..\HopeAirProviderApi\HopeAirProviderApi.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <None Update="appsettings.Test.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Update="MockData\**\*.*">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
 </Project>

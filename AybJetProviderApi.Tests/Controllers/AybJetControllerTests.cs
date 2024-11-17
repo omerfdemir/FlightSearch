@@ -6,9 +6,6 @@ using AybJetProviderApi.Models;
 using AybJetProviderApi.Models.Booking;
 using AybJetProviderApi.Models.FlightSearch;
 using AybJetProviderApi.Services;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace AybJetProviderApi.Tests.Controllers
 {
@@ -24,7 +21,7 @@ namespace AybJetProviderApi.Tests.Controllers
         }
 
         [Fact]
-        public void Search_ReturnsOkResultWithFlights()
+        public async Task SearchFlights_ReturnsOkResultWithFlights()
         {
             // Arrange
             var request = new FlightSearchRequest 
@@ -36,10 +33,12 @@ namespace AybJetProviderApi.Tests.Controllers
             {
                 new() { FlightNumber = "AY123", Departure = "LHR", Arrival = "JFK" }
             };
-            _mockService.Setup(s => s.SearchFlights(request)).Returns(expectedFlights);
+            _mockService
+                .Setup(s => s.SearchFlightsAsync(request, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(expectedFlights);
 
             // Act
-            var result = _controller.Search(request);
+            var result = await _controller.Search(request, CancellationToken.None);
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result);
@@ -53,11 +52,11 @@ namespace AybJetProviderApi.Tests.Controllers
             // Arrange
             var request = new BookingRequest { FlightNumber = "AY123" };
             _mockService
-                .Setup(x => x.BookFlightAsync(request))
+                .Setup(x => x.BookFlightAsync(request, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(true);
 
             // Act
-            var result = await _controller.BookFlight(request);
+            var result = await _controller.BookFlight(request, CancellationToken.None);
 
             // Assert
             Assert.IsType<OkObjectResult>(result);
@@ -69,18 +68,18 @@ namespace AybJetProviderApi.Tests.Controllers
             // Arrange
             var request = new BookingRequest { FlightNumber = "AY999" };
             _mockService
-                .Setup(x => x.BookFlightAsync(request))
+                .Setup(x => x.BookFlightAsync(request, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(false);
 
             // Act
-            var result = await _controller.BookFlight(request);
+            var result = await _controller.BookFlight(request, CancellationToken.None);
 
             // Assert
             Assert.IsType<NotFoundObjectResult>(result);
         }
 
         [Fact]
-        public async Task StreamFlights_ReturnsAsyncEnumerable()
+        public async Task StreamFlights_ReturnsStreamOfFlights()
         {
             // Arrange
             var request = new FlightSearchRequest 
@@ -92,20 +91,17 @@ namespace AybJetProviderApi.Tests.Controllers
             {
                 new() { FlightNumber = "AY123", Departure = "LHR", Arrival = "JFK" }
             };
+
             _mockService
                 .Setup(s => s.StreamFlightsAsync(request, It.IsAny<CancellationToken>()))
                 .Returns(expectedFlights.ToAsyncEnumerable());
 
             // Act
-            var results = new List<FlightSearchResponse>();
-            await foreach (var flight in _controller.StreamFlights(request, CancellationToken.None))
-            {
-                results.Add(flight);
-            }
+            var result = _controller.StreamFlights(request, CancellationToken.None);
 
             // Assert
-            Assert.Equal(expectedFlights.Count, results.Count);
-            Assert.Equal(expectedFlights.First().FlightNumber, results.First().FlightNumber);
+            var flights = await result.ToListAsync();
+            Assert.Equal(expectedFlights, flights);
         }
     }
 } 

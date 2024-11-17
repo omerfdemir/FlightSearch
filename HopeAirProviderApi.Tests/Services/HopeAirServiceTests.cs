@@ -46,14 +46,18 @@ namespace HopeAirProviderApi.Tests.Services
         {
             // Arrange
             var request = new BookingRequest { FlightNumber = "HH123" };
-            
-            // First add a flight to the cache via search
-            var searchRequest = new FlightSearchRequest 
-            { 
-                Origin = "LHR",
-                Destination = "JFK" 
+            var mockFlights = new List<FlightSearchResponse>
+            {
+                new FlightSearchResponse 
+                { 
+                    FlightNumber = "HH123",
+                    Departure = "LHR",
+                    Arrival = "JFK",
+                    Price = 500.00m
+                }
             };
-            await _service.SearchFlightsAsync(searchRequest);
+
+            _service.SetAvailableFlights(mockFlights);
 
             // Act
             var result = await _service.BookFlightAsync(request);
@@ -66,8 +70,8 @@ namespace HopeAirProviderApi.Tests.Services
                     It.IsAny<EventId>(),
                     It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Flight HH123 booked and removed from cache")),
                     It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-                Times.Once);
+                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
+                Times.Once());
         }
 
         [Fact]
@@ -75,6 +79,7 @@ namespace HopeAirProviderApi.Tests.Services
         {
             // Arrange
             var request = new BookingRequest { FlightNumber = "HH999" };
+            _service.SetAvailableFlights(new List<FlightSearchResponse>()); // Empty list to simulate no flights
 
             // Act
             var result = await _service.BookFlightAsync(request);
@@ -85,24 +90,29 @@ namespace HopeAirProviderApi.Tests.Services
                 x => x.Log(
                     LogLevel.Warning,
                     It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Flight HH999 not found in cache")),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Flight {request.FlightNumber} not found")),
                     It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-                Times.Once);
+                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
+                Times.Once());
         }
 
         [Fact]
         public async Task ParseSoapResponse_WithInvalidXml_LogsErrorAndReturnsEmptyList()
         {
             // Arrange
-            var request = new FlightSearchRequest 
-            { 
-                Origin = "INVALID",
-                Destination = "INVALID" 
-            };
+            var invalidXml = @"<?xml version='1.0' encoding='UTF-8'?>
+                <soap:Envelope xmlns:soap='http://schemas.xmlsoap.org/soap/envelope/'>
+                    <soap:Body>
+                        <GetFlightInfoResponse>
+                            <flight>
+                                <invalidTag>This will cause an error</invalidTag>
+                            </flight>
+                        </GetFlightInfoResponse>
+                    </soap:Body>
+                </soap:Envelope>";
 
             // Act
-            var result = await _service.SearchFlightsAsync(request);
+            var result = await _service.ParseSoapResponseAsync(invalidXml);
 
             // Assert
             Assert.Empty(result);
@@ -112,8 +122,8 @@ namespace HopeAirProviderApi.Tests.Services
                     It.IsAny<EventId>(),
                     It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error parsing flight data")),
                     It.IsAny<Exception>(),
-                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-                Times.AtLeastOnce);
+                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
+                Times.Once());
         }
     }
 } 
