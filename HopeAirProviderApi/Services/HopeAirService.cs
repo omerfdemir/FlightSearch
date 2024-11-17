@@ -1,11 +1,14 @@
-using HopeAirProviderService.Models.FlightSearch;
+using HopeAirProviderApi.Models.Booking;
+using HopeAirProviderApi.Models.FlightSearch;
+using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 
-namespace HopeAirProviderService.Services
+namespace HopeAirProviderApi.Services
 {
     public class HopeAirService : IHopeAirService
     {
         private readonly ILogger<HopeAirService> _logger;
+        private static readonly List<FlightSearchResponse> _flightCache = new();
 
         public HopeAirService(ILogger<HopeAirService> logger)
         {
@@ -21,6 +24,26 @@ namespace HopeAirProviderService.Services
             var filteredFlights = flights.FindAll(f => f.Departure == request.Origin && f.Arrival == request.Destination);
 
             return filteredFlights;
+        }
+
+        public async IAsyncEnumerable<FlightSearchResponse> StreamFlightsAsync(
+            FlightSearchRequest request,
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            var soapRequestXml = CreateSoapRequest(request);
+            var soapResponseXml = await SendSoapRequestAsync(soapRequestXml);
+            var flights = ParseSoapResponse(soapResponseXml);
+
+            foreach (var flight in flights.Where(f => 
+                f.Departure == request.Origin && 
+                f.Arrival == request.Destination))
+            {
+                if (cancellationToken.IsCancellationRequested)
+                    yield break;
+
+                await Task.Delay(100, cancellationToken); // Simulate real-time streaming
+                yield return flight;
+            }
         }
 
         private string CreateSoapRequest(FlightSearchRequest request)
@@ -102,6 +125,20 @@ namespace HopeAirProviderService.Services
             }
 
             return flights;
+        }
+
+        public async Task<bool> BookFlightAsync(BookingRequest request)
+        {
+            var flight = _flightCache.FirstOrDefault(f => f.FlightNumber == request.FlightNumber);
+            if (flight == null)
+            {
+                _logger.LogWarning($"Flight {request.FlightNumber} not found in cache");
+                return false;
+            }
+
+            _flightCache.Remove(flight);
+            _logger.LogInformation($"Flight {request.FlightNumber} booked and removed from cache");
+            return true;
         }
     }
 }

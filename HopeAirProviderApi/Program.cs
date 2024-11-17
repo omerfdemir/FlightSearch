@@ -1,4 +1,4 @@
-using HopeAirProviderService.Services;
+using HopeAirProviderApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,7 +24,7 @@ if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Test"))
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "HopeAirProviderService v1");
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "HopeAirProviderApi v1");
     });
 }
 else

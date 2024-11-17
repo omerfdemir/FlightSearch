@@ -1,4 +1,7 @@
 using FlightSearchApi.Models.FlightSearch;
+using System.Runtime.CompilerServices;
+using System.Text.Json;
+using FlightSearchApi.Helpers;
 
 namespace FlightSearchApi.Services;
 
@@ -89,5 +92,78 @@ public class FlightSearchService: IFlightSearchService
             _logger.LogWarning($"Received unsuccessful status code from {clientName}: {response.StatusCode}");
             return new List<FlightSearchResponse>();
         }
-        
+
+        public async IAsyncEnumerable<FlightSearchResponse> StreamFlightsAsync(
+            FlightSearchRequest request,
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(TimeSpan.FromSeconds(30));
+
+            var hopeAirClient = _httpClientFactory.CreateClient("HopeAirClient");
+            var aybJetClient = _httpClientFactory.CreateClient("AybJetClient");
+
+            var hopeAirStream = hopeAirClient.GetStreamAsync("HopeAir/search/stream", cts.Token);
+            var aybJetStream = aybJetClient.GetStreamAsync("AybJet/search/stream", cts.Token);
+
+            var hopeAirFlights = StreamProvider(hopeAirStream, "HopeAir", request);
+            var aybJetFlights = StreamProvider(aybJetStream, "AybJet", request);
+
+            await foreach (var flight in hopeAirFlights.MergeStreams(aybJetFlights, cts.Token))
+            {
+                yield return flight;
+            }
+        }
+
+        private async IAsyncEnumerable<FlightSearchResponse> StreamProvider(
+            Task<Stream> streamTask,
+            string provider,
+            FlightSearchRequest request,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            Stream? stream = null;
+            
+            try
+            {
+                stream = await streamTask;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error getting stream from {provider}");
+                yield break;
+            }
+
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var enumerable = JsonSerializer.DeserializeAsyncEnumerable<FlightSearchResponse>(
+                stream,
+                options,
+                cancellationToken);
+            
+            await using var enumerator = enumerable.GetAsyncEnumerator(cancellationToken);
+            
+            while (true)
+            {
+                FlightSearchResponse? flight;
+                try
+                {
+                    if (!await enumerator.MoveNextAsync())
+                    {
+                        break;
+                    }
+                    flight = enumerator.Current;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Error reading flight from {provider}");
+                    break;
+                }
+
+                if (flight != null && 
+                    flight.Departure == request.Origin && 
+                    flight.Arrival == request.Destination)
+                {
+                    yield return flight;
+                }
+            }
+        }
 }

@@ -31,6 +31,7 @@ builder.Services.AddScoped<IFlightSearchService, FlightSearchService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Test"))

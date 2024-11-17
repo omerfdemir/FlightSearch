@@ -13,12 +13,13 @@
 
     <ItemGroup>
         <PackageReference Include="Aspire.Hosting.AppHost" Version="9.0.0" />
+        <PackageReference Include="System.Linq.Async" Version="6.0.1" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\AybJetProviderApi\AybJetProviderApi.csproj" />
       <ProjectReference Include="..\FlightSearchApi\FlightSearchApi.csproj" />
-      <ProjectReference Include="..\HopeAirProviderService\HopeAirProviderService.csproj" />
+      <ProjectReference Include="..\HopeAirProviderApi\HopeAirProviderApi.csproj" />
     </ItemGroup>
 
 </Project>

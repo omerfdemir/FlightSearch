@@ -16,3 +16,9 @@
     build:
       context: .
       dockerfile: HopeAirProviderService/Dockerfile
+
+  flightbookapi:
+    image: flightbookapi
+    build:
+      context: .
+      dockerfile: FlightBookApi/Dockerfile

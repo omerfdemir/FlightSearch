@@ -1,9 +1,11 @@
-using FlightSearchApi.Models.FlightSearch;
+using HopeAirProviderApi.Models.Booking;
+using HopeAirProviderApi.Models.FlightSearch;
 
-namespace FlightSearchApi.Services;
+namespace HopeAirProviderApi.Services;
 
-public interface IFlightSearchService
+public interface IHopeAirService
 {
     Task<List<FlightSearchResponse>> SearchFlightsAsync(FlightSearchRequest request);
     IAsyncEnumerable<FlightSearchResponse> StreamFlightsAsync(FlightSearchRequest request, CancellationToken cancellationToken);
+    Task<bool> BookFlightAsync(BookingRequest request);
 }

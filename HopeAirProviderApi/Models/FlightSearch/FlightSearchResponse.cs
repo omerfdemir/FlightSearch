@@ -1,4 +1,4 @@
-namespace HopeAirProviderService.Models.FlightSearch;
+namespace HopeAirProviderApi.Models.FlightSearch;
 
 public class FlightSearchResponse
 {
