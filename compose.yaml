@@ -1,0 +1,18 @@
+﻿services:
+  fllightsearchapi:
+    image: fllightsearchapi
+    build:
+      context: .
+      dockerfile: FllightSearchApi/Dockerfile
+
+  aybjetproviderapi:
+    image: aybjetproviderapi
+    build:
+      context: .
+      dockerfile: AybJetProviderApi/Dockerfile
+
+  hopeairproviderservice:
+    image: hopeairproviderservice
+    build:
+      context: .
+      dockerfile: HopeAirProviderService/Dockerfile

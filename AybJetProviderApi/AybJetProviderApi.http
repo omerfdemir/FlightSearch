@@ -1,0 +1,6 @@
+@AybJetProviderApi_HostAddress = http://localhost:5126
+
+GET {{AybJetProviderApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
