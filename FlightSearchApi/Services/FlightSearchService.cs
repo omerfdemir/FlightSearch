@@ -18,7 +18,7 @@ public class FlightSearchService: IFlightSearchService
 
         public async Task<List<FlightSearchResponse>> SearchFlightsAsync(FlightSearchRequest request)
         {
-            using (var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(20000)))
+            using (var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
             {
                 var token = cancellationTokenSource.Token;
 
