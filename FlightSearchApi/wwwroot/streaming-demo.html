@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Flight Search Stream</title>
+    <style>
+        .flight-card {
+            border: 1px solid #ddd;
+            margin: 10px;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .provider-hopeair { background-color: #e3f2fd; }
+        .provider-aybjet { background-color: #f3e5f5; }
+    </style>
+</head>
+<body>
+<div id="search-form">
+    <input type="text" id="origin" placeholder="Origin (e.g., IST)" value="IST">
+    <input type="text" id="destination" placeholder="Destination (e.g., LHR)" value="LHR">
+    <input type="date" id="departureDate" value="2024-11-14">
+    <button onclick="searchFlights()">Search Flights</button>
+</div>
+<div id="results"></div>
+
+<script>
+    async function searchFlights() {
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.innerHTML = 'Searching flights...';
+
+        const request = {
+            origin: document.getElementById('origin').value,
+            destination: document.getElementById('destination').value,
+            departureDate: document.getElementById('departureDate').value
+        };
+
+        const queryString = new URLSearchParams({
+            origin: request.origin,
+            destination: request.destination,
+            departureDate: request.departureDate
+        }).toString();
+
+        try {
+            const response = await fetch(`http://localhost:5085/FlightSearch/stream?${queryString}`);
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            resultsDiv.innerHTML = '';
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    if (line.trim()) {
+                        const flight = JSON.parse(line);
+                        displayFlight(flight);
+                    }
+                }
+            }
+        } catch (error) {
+            resultsDiv.innerHTML = `Error: ${error.message}`;
+        }
+    }
+
+    function displayFlight(flight) {
+        const resultsDiv = document.getElementById('results');
+        const flightCard = document.createElement('div');
+        flightCard.className = `flight-card provider-${flight.providerName.toLowerCase()}`;
+
+        flightCard.innerHTML = `
+                <h3>${flight.providerName} - ${flight.flightNumber}</h3>
+                <p>${flight.departure} → ${flight.arrival}</p>
+                <p>Departure: ${new Date(flight.departureTime).toLocaleString()}</p>
+                <p>Duration: ${flight.duration}</p>
+                <p>Price: ${flight.price} ${flight.currency}</p>
+            `;
+
+        resultsDiv.appendChild(flightCard);
+    }
+</script>
+</body>
+</html>

@@ -18,6 +18,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\AybJetProviderApi\AybJetProviderApi.csproj" />
+      <ProjectReference Include="..\FlightBookApi\FlightBookApi.csproj" />
       <ProjectReference Include="..\FlightSearchApi\FlightSearchApi.csproj" />
       <ProjectReference Include="..\HopeAirProviderApi\HopeAirProviderApi.csproj" />
     </ItemGroup>

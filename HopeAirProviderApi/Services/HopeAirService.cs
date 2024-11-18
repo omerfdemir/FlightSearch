@@ -23,7 +23,11 @@ namespace HopeAirProviderApi.Services
             var soapResponseXml = await SendSoapRequestAsync(soapRequestXml);
             var flights = ParseSoapResponse(soapResponseXml);
             
-            var filteredFlights = flights.FindAll(f => f.Departure == request.Origin && f.Arrival == request.Destination);
+            var filteredFlights = flights
+                .Where(f => f.Departure == request.Origin && 
+                           f.Arrival == request.Destination &&
+                           f.DepartureTime.Date == request.DepartureDate.Date)
+                .ToList();
 
             return filteredFlights;
         }
@@ -89,41 +93,48 @@ namespace HopeAirProviderApi.Services
 
         private List<FlightSearchResponse> ParseSoapResponse(string soapResponse)
         {
+            var flights = new List<FlightSearchResponse>();
             if (string.IsNullOrEmpty(soapResponse))
             {
                 _logger.LogError("SOAP response is empty.");
-                return new List<FlightSearchResponse>();
+                return flights;
             }
 
-            XNamespace soapenv = "http://schemas.xmlsoap.org/soap/envelope/";
-            XNamespace sky = "http://skyblue.com/flight";
-
-            var xdoc = XDocument.Parse(soapResponse);
-
-            var flights = new List<FlightSearchResponse>();
-
-            foreach (var flightElement in xdoc.Descendants(sky + "flight"))
+            try
             {
-                try
-                {
-                    var flight = new FlightSearchResponse
-                    {
-                        FlightNumber = flightElement.Element(sky + "flightNumber")?.Value,
-                        Departure = flightElement.Element(sky + "departure")?.Value,
-                        Arrival = flightElement.Element(sky + "arrival")?.Value,
-                        Price = decimal.Parse(flightElement.Element(sky + "price")?.Value ?? "0"),
-                        Currency = flightElement.Element(sky + "currency")?.Value,
-                        Duration = flightElement.Element(sky + "duration")?.Value,
-                        DepartureTime = DateTime.Parse(flightElement.Element(sky + "departureTime")?.Value ?? DateTime.MinValue.ToString()),
-                        ArrivalTime = DateTime.Parse(flightElement.Element(sky + "arrivalTime")?.Value ?? DateTime.MinValue.ToString())
-                    };
+                var doc = XDocument.Parse(soapResponse);
+                XNamespace soapenv = "http://schemas.xmlsoap.org/soap/envelope/";
+                XNamespace sky = "http://skyblue.com/flight";
 
-                    flights.Add(flight);
-                }
-                catch (Exception ex)
+                var flightElements = doc.Descendants(sky + "flight");
+                foreach (var flightElement in flightElements)
                 {
-                    _logger.LogError(ex, "Error parsing flight data.");
+                    try
+                    {
+                        var flight = new FlightSearchResponse
+                        {
+                            FlightNumber = flightElement.Element(sky + "flightNumber")?.Value,
+                            Departure = flightElement.Element(sky + "departure")?.Value,
+                            Arrival = flightElement.Element(sky + "arrival")?.Value,
+                            Price = decimal.Parse(flightElement.Element(sky + "price")?.Value ?? "0"),
+                            Currency = flightElement.Element(sky + "currency")?.Value,
+                            Duration = flightElement.Element(sky + "duration")?.Value,
+                            DepartureTime = DateTime.Parse(flightElement.Element(sky + "departureTime")?.Value ?? DateTime.MinValue.ToString()),
+                            ArrivalTime = DateTime.Parse(flightElement.Element(sky + "arrivalTime")?.Value ?? DateTime.MinValue.ToString()),
+                            ProviderName = "HopeAir"
+                        };
+
+                        flights.Add(flight);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error parsing flight data.");
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error parsing SOAP response.");
             }
 
             return flights;

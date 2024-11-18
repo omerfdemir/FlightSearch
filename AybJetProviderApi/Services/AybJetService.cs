@@ -45,21 +45,35 @@ namespace AybJetProviderApi.Services
 
         public async Task<List<FlightSearchResponse>> SearchFlightsAsync(FlightSearchRequest request, CancellationToken cancellationToken = default)
         {
-            var flights = new List<FlightSearchResponse>
+            try
             {
-                new FlightSearchResponse 
-                { 
-                    FlightNumber = "AY123",
-                    Departure = request.Origin,
-                    Arrival = request.Destination,
-                    Price = 500.00m,
-                    Currency = "USD",
-                    Duration = "8h"
-                }
-            };
+                var filePath = Path.Combine("MockData", "AybJet-Provider-Response.json");
+                var jsonContent = await File.ReadAllTextAsync(filePath, cancellationToken);
+                var allFlights = JsonSerializer.Deserialize<List<FlightSearchResponse>>(jsonContent);
 
-            _cache.Set(FLIGHTS_CACHE_KEY, flights);
-            return flights;
+                if (allFlights != null)
+                {
+                    foreach (var flight in allFlights)
+                    {
+                        flight.ProviderName = "AybJet";
+                    }
+                }
+
+                var filteredFlights = allFlights?
+                    .Where(f => f.Departure == request.Origin && 
+                               f.Arrival == request.Destination &&
+                               (request.DepartureDate == default || 
+                                f.DepartureTime.Date == request.DepartureDate.Date))
+                    .ToList() ?? new List<FlightSearchResponse>();
+
+                _cache.Set(FLIGHTS_CACHE_KEY, filteredFlights);
+                return filteredFlights;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error reading mock data from AybJet-Provider-Response.json");
+                return new List<FlightSearchResponse>();
+            }
         }
 
         public async IAsyncEnumerable<FlightSearchResponse> StreamFlightsAsync(

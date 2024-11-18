@@ -32,8 +32,9 @@ namespace AybJetProviderApi.Tests.Services
             // Arrange
             var request = new FlightSearchRequest 
             { 
-                Origin = "LHR",
-                Destination = "JFK" 
+                Origin = "IST",
+                Destination = "LHR",
+                DepartureDate = new DateTime(2024, 11, 14)
             };
 
             // Act
