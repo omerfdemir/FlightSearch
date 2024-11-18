@@ -39,11 +39,18 @@ if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Test"))
     app.UseDeveloperExceptionPage();
     app.UseSwagger();
     app.UseSwaggerUI();
+    
+    app.UseCors(x => x
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowAnyOrigin());
 }
 
 app.UseHttpsRedirection();
 app.UseRouting();
 app.UseAuthorization();
 app.MapControllers();
+
+app.UseStaticFiles();
 
 await app.RunAsync();
